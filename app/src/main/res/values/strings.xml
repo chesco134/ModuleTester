@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">TerminalSupport</string>
+    <string name="waiter_activity_mensaje_espera">Esperando archivo...</string>
+</resources>
