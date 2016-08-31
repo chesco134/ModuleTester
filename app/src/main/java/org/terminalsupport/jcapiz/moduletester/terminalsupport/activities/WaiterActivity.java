@@ -5,8 +5,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.widget.TextView;
 
-import org.terminalsupport.jcapiz.terminalsupport.R;
-import org.terminalsupport.jcapiz.terminalsupport.networking.IOHandler;
+import org.terminalsupport.jcapiz.moduletester.R;
+import org.terminalsupport.jcapiz.moduletester.terminalsupport.networking.IOHandler;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -72,7 +72,7 @@ public class WaiterActivity extends Activity {
                 socket.close();
                 Intent data = new Intent();
                 data.putExtra("content", content);
-                setResult(RESULT_OK);
+                setResult(RESULT_OK, data);
             }catch(IOException e){
                 e.printStackTrace();
                 setResult(RESULT_CANCELED);
