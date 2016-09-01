@@ -2,11 +2,11 @@ package org.terminalsupport.jcapiz.moduletester;
 
 
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.Environment;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -19,7 +19,6 @@ import org.terminalsupport.jcapiz.moduletester.terminalsupport.dialogos.DialogoD
 import org.terminalsupport.jcapiz.moduletester.terminalsupport.dialogos.ObtenerTexto;
 import org.terminalsupport.jcapiz.moduletester.terminalsupport.networking.IOHandler;
 
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -27,6 +26,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -68,18 +68,33 @@ public class MainActivity extends AppCompatActivity {
                                 @Override
                                 public void run(){
                                     try{
-                                        DataInputStream entrada = new DataInputStream(new FileInputStream(new File(SOURCE+"/calaca.txt")));
-                                        byte[] chunk = new byte[64];
+                                        int available;
+                                        FileInputStream fis = new FileInputStream(new File(SOURCE+"/calaca.txt"));
+                                        available = fis.available();
+                                        Log.e("Sender", "there are " + available + " bytes to read before blocking");
+                                        DataInputStream entrada = new DataInputStream(fis);
+                                        byte[] chunk = new byte[1024];
                                         int length;
-                                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                                        while((length = entrada.read(chunk)) != -1)
-                                            baos.write(chunk, 0, length);
-                                        entrada.close();
                                         Socket socket = new Socket(texto, 23500);
                                         IOHandler ioHandler = new IOHandler(new DataInputStream(socket.getInputStream()), new DataOutputStream(socket.getOutputStream()));
-                                        ioHandler.sendMessage(baos.toByteArray());
-                                        baos.close();
+                                        ioHandler.setRate(1024);
+                                        int i = 1;
+                                        long init = System.currentTimeMillis();
+                                        // A partir de este punto se especifica un protocolo para indicar si siguen bytes o no.
+                                        while((length = entrada.read(chunk)) != -1) {
+                                            Log.e("Sender", length + " bytes extracted");
+                                            ioHandler.sendMessage(Arrays.copyOf(chunk, length));
+                                            Log.e("Sender", length + " bytes sent\t" + i++);
+                                        }
+                                        Log.e("Sender", "Done. Lasted " + ((System.currentTimeMillis()-init)/60000l) + " minutes.");
+                                        entrada.close();
                                         ioHandler.close();
+                                        socket.close();
+                                        socket = new Socket(texto, 23501);
+                                        ioHandler = new IOHandler(new DataInputStream(socket.getInputStream()), new DataOutputStream(socket.getOutputStream()));
+                                        ioHandler.sendMessage("Disconnect".getBytes());
+                                        ioHandler.close();
+                                        socket.close();
                                         runOnUiThread(new Runnable(){
                                             @Override
                                             public void run(){
