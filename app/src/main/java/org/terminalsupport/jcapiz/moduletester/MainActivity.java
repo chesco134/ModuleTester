@@ -63,72 +63,131 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        // Se trata de la imagen del botón de on/off
         ImageButton ib = (ImageButton) findViewById(R.id.activity_main_on_off);
+        // Es el botón de operación en modo wifi. Por default ésta es la opción seleccionada.
         wifiToggle = (ToggleButton) findViewById(R.id.activity_main_wifi_toggle);
+        // Es el botón de operación en modo blutú.
         btToggle = (ToggleButton) findViewById(R.id.activity_main_bluetooth_toggle);
+        // La siguiente línea agrega mediante una clase anónima la funcionalidad de click.
+        // Lo único que hace es simplemente altenrnar selección entre sí y el modo blutú.
         wifiToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 btToggle.setChecked(!isChecked);
             }
         });
+        // El siguiente cuerpo de código agrega la funcionalidad de click sobre el elemento.
         btToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 wifiToggle.setChecked(!isChecked);
             }
         });
+        // El objeto "manager" ayuda con las tareas de administración del blutú.
         manager = new BluetoothManager(this);
+        // La siguiente línea de código sirve para instanciar un BluetoothAdapter dentro de "manager".
         manager.getBluetoothAdapter();
+        // La siguiente clase anónima define el comportamiento de click sobre la imagen de on/off.
+        // Las buenas prácticas de programación recomiendad que la definición siguiente se normalice
+        // en más clases, pero por cuestiones de tiempo se dejó escrito dentro de la clase anónima.
+        // Su funcionalidad principal es la de adoptar un comportamiento según sea el modo de operación
+        // activo (wifi o blutú).
         ib.setOnClickListener(new View.OnClickListener() {
 
+            // La bandera "clicked" sirve para controlar que el comportamiento se haga una sola vez,
+            // e impida que se ejecute repetidas veces mientras el usuario continúe tocando la imagen.
             private boolean clicked = false;
 
             @Override
             public void onClick(View v) {
                 if (!clicked) {
                     clicked = true;
+                    // Si el modo de opración activo es wifi:
                     if (wifiToggle.isChecked()) {
+                        // Declaramos un objeto de diálogo, que servirá para pedirle texto al usuario.
                         ObtenerTexto ot = new ObtenerTexto();
+                        // Bundle es una clase de mapa que permite el paso de valores entre actividades.
                         Bundle args = new Bundle();
+                        // El mapa trabaja fundamentalmente con "Strings" como índices.
+                        // El siguiente sólo define el mensaje que queremos que muestre el diálogo.
                         args.putString("mensaje", "Escriba la ip del destino");
                         ot.setArguments(args);
+                        // Es necesario definir qué debe hacer el diálogo cuando el usuario toque la
+                        // opción positiva o negativa del mismo.
                         ot.setAgenteDeInteraccion(new DialogoDeConsultaSimple.AgenteDeInteraccionConResultado() {
                             @Override
                             public void clickSobreAccionPositiva(DialogFragment dialogo) {
+                                // Indica que el usuario está de acuerdo con el texto que ingresó.
+                                // Lo que esperamos es que ponga la dirección IP del dispositivo móvil que está
+                                // esperando el archivo.
                                 final String texto = ((ObtenerTexto) dialogo).obtenerTexto();
+                                // Lo siguiente es una definición anónima de un hilo, debido a que todas las
+                                // tareas de red deben correr en segundo plano (política de operación de Android).
+                                // El hilo llevará a cabo la tarea de envío del archivo.
                                 new Thread() {
 
                                     @Override
                                     public void run() {
                                         try {
+                                            // La siguiente variable sólo nos dirá los bytes disponibles del archivo a enviar.
                                             int available;
+                                            // El objeto fis es un flujo de lectura del archivo referenciado "calaca.txt".
+                                            // Puede ser una foto, pero renombrada al nombre y extensión "hardcodeados".
                                             FileInputStream fis = new FileInputStream(new File(SOURCE + "/calaca.txt"));
                                             available = fis.available();
+                                            // Lo siguiente es un mensaje que aparece en "Android Monitor".
                                             Log.e("Sender", "there are " + available + " bytes to read before blocking");
+                                            // Declaración del objeto principal de lectura del archivo.
+                                            // DataInputStream define muchos métodos prácticos para la lectura de elementos
+                                            // en bytes.
                                             DataInputStream entrada = new DataInputStream(fis);
+                                            // Sigue un arreglo de bytes que sostendrá tramas de un tamaño específico.
+                                            // El tamaño actual es debido a que con ese no se presentan problemas de
+                                            // envío de valor, pues si se pone algo más grande, eventualmente (aún no sé
+                                            // por qué), el valor recibido de entero será muy grande (al parecer
+                                            // es uno muy distinto del enviado).
+                                            // Dicho tamaño es importante porque la clase IOHandler manda primero
+                                            // la cantidad de bytes que está por enviar para que el receptor se prepare
+                                            // y posteriormente envía la trama.
                                             byte[] chunk = new byte[1024];
+                                            // Length es una variable que sirve para controlar la cantidad de bytes leídos
+                                            // del archivo y no mandar "bytes basura".
                                             int length;
+                                            // Sigue un objeto de conexión por socket. Se indica la IP ingresada por el usuario
+                                            // y el puerto en el que se debe conectar.
                                             Socket socket = new Socket(texto, 23500);
+                                            // Instanciación de IOHandler, con los flujos de entrada/salida obtenidos de la
+                                            // conexión exitosa.
                                             IOHandler ioHandler = new IOHandler(new DataInputStream(socket.getInputStream()), new DataOutputStream(socket.getOutputStream()));
+                                            // Se coloca la taza de transferencia.
                                             ioHandler.setRate(1024);
+                                            // La siguiente variable sólo es un índice para contar las tramas enviadas en el log.
                                             int i = 1;
+                                            // Guardamos la estampa de tiempo inicial.
                                             long init = System.currentTimeMillis();
-                                            // A partir de este punto se especifica un protocolo para indicar si siguen bytes o no.
+                                            // A partir de este punto se leen bytes del archivo y se envían.
                                             while ((length = entrada.read(chunk)) != -1) {
                                                 Log.e("Sender", length + " bytes extracted");
                                                 ioHandler.sendMessage(Arrays.copyOf(chunk, length));
                                                 Log.e("Sender", length + " bytes sent\t" + i++);
                                             }
+                                            // Al terminar, se calculan los minutos que tardó la transferencia.
                                             Log.e("Sender", "Done. Lasted " + ((System.currentTimeMillis() - init) / 60000l) + " minutes.");
+                                            // IMPORTANTE: Se procede con el cierre de todos los flujos abiertos.
                                             entrada.close();
                                             ioHandler.close();
                                             socket.close();
+                                            // La aplicación maneja un segundo puerto de escucha para poder finalizar la transferencia.
                                             socket = new Socket(texto, 23501);
                                             ioHandler = new IOHandler(new DataInputStream(socket.getInputStream()), new DataOutputStream(socket.getOutputStream()));
+                                            // Se envía el código de finalización para que el otro extremo termine.
                                             ioHandler.sendMessage("Disconnect".getBytes());
                                             ioHandler.close();
                                             socket.close();
+                                            // Debido a que estamos en un hilo clásico de java y no en uno del framework de Android,
+                                            // es necesario pedir al hilo de interfaz de usuario que lleve a cabo una interacción
+                                            // gráfica; mostrar un mensaje de Toast de éxito.
                                             runOnUiThread(new Runnable() {
                                                 @Override
                                                 public void run() {
@@ -153,9 +212,9 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void clickSobreAccionNegativa(DialogFragment dialogo) {}
                         });
-                        FragmentManager fm = MainActivity.this.getSupportFragmentManager();
-                        Log.e("Shu", fm == null ? "Nulo" : "Yop");
-                        ot.show(fm, "ObtenerIP");
+                        // Una vez que han sido definidas las acciones "Aceptar"/"Cancelar" del diálogo,
+                        // procedemos a mostrarlo.
+                        ot.show(MainActivity.this.getSupportFragmentManager(), "ObtenerIP");
                     }
                 }else{
                     if(!manager.isBluetoothEnabled())
