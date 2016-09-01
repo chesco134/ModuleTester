@@ -217,49 +217,75 @@ public class MainActivity extends AppCompatActivity {
                         ot.show(MainActivity.this.getSupportFragmentManager(), "ObtenerIP");
                     }
                 }else{
+                    // Si no opera en wifi, opera el blutú.
+                    // Si no está activado el blutú, despliega un diálogo para pedir permiso de activarlo.
                     if(!manager.isBluetoothEnabled())
                         manager.enableBluetooth();
                     else
+                    // Si ya estaba activado procede a lanzar la pantalla de selección del dispositivo al
+                    // que hay que conectarse.
                         launchAction(START_CLIENT_ACTION);
                 }
             }
         });
+        // Fin de la preparación de los elementos.
     }
 
+    // Se sobreescribe el siguiente método para establecer el menú de la aplicación.
     @Override
     public boolean onCreateOptionsMenu(Menu menu){
+        // Se hace referencia a un xml dentro de la carpeta "res/menu" que contiene las entradas
+        // del menú que queremos usar.
         getMenuInflater().inflate(R.menu.main_menu,menu);
         return true;
     }
 
+    // Se sobreescribe el siguiente método para establecer qué hacer en caso de la selección de
+    // ciertas entradas del menú.
     @Override
     public boolean onOptionsItemSelected(MenuItem item){
         boolean consumed = false;
+        // En este caso sólo hay una entrada en el menú, y esta al ser seleccionada efectua algo
+        // según el modo de operación actual.
         if( item.getItemId() == R.id.main_menu_start_listening){
             if(wifiToggle.isChecked())
                 launchWaiterDialog(); // Cuando se toque la opción del menú lanza un dialogo de espera.
             else if(btToggle.isChecked()){
                 wasServerSelected = true;
-                launchWaiterDialogBluetooth();
+                launchWaiterDialogBluetooth(); // Lo mismo que la anterior pero en modo blutú.
             }
+            // Se indica que el item fue procesado por la actividad.
             consumed = true;
         }
         return consumed;
     }
 
+    // El siguiente método debe sobreescribirse cuando se espera que una actividad lanzada por la
+    // presente devuelva un resultado.
     @Override
     public void onActivityResult(int requestCode, int resultCode, final Intent data){
         // This method is called when the activity regains control after a launched activity has
-        // finished.
+        // finished. (Sí, también escribo en inglés pero no hay bronca ¿o sí?)
         if(resultCode == RESULT_OK){ switch(requestCode) {
+            // Originalmente escribí el código para que la actividad de espera recibiera tooodos los
+            // bytes y luego los devolviera pero ¡oh sorpresa!, en ambientes Android la memoria es
+            // muy limitada, y en caso de archivos grandes no alcanzaría la memoria para devolver
+            // la imagen completa a la actividad principal (ésta, sin albur).
             case WAITER_ACTIVITY:
+                // Del parámetro "data" de tipo "Intent" se obtienen los datos que preparó la
+                // actividad lanzada con la bandera WAITER_ACTIVITY para nosotros.
                 byte[] content = data.getByteArrayExtra("content"); // Retrieves the file's bytes
                 // The way we do things here is not recommended, it only serves as an example of sharing
-                // between activities.
+                // between activities. (Lo que está escrito arriba pero en español)
+                // La siguiente línea de código permite crear la carpeta "TerminalSupport" para que
+                // ahí dentro resida el fichero recibido.
                 File f = new File(SOURCE, "TerminalSupport");
                 if (!f.exists()) {
                     f.mkdirs();
                 }
+                // Sigue la tarea de escritura de los bytes de la imagen en el archivo.
+                // Actualmente para no crear buffers grandes en RAM, los bytes son escritos
+                // directamente al archivo con forme son recibidos.
                 try {
                     DataOutputStream dos = new DataOutputStream(new FileOutputStream(new File(SOURCE + "/TerminalSupport/new_calaca.txt")));
                     dos.write(content);
@@ -270,23 +296,35 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "Problemas al escribir el archivo", Toast.LENGTH_SHORT).show();
                 }
                 break;
+            // El siguiente caso es por si la actividad de la que estamos volviendo es la de
+            // selección del blutú al que vamos a enviar el archivo.
             case START_CLIENT_ACTION:
+                // Esta acción es crucial para que nuestra aplicación no drene la batería del teléfono.
                 manager.cancelDiscovery();
+                // No se ocupa, pero dejo una muestra del uso de un archivo de opciones, dedicado
+                // a nuestra aplicación. Es manejado directamente por el sistema operativo.
                 SharedPreferences.Editor editor = getPreferences(Context.MODE_PRIVATE).edit();
+                // En él colocamos la dirección mac del dispositivo blutú que seleccionamos.
                 editor.putString("device_addr", data.getStringExtra("device_addr"));
+                // No olvidamos confirmar los cambios.
                 editor.apply();
                 // Inicia la conexión para la transferencia por blutú
                 new Thread(){
                     @Override public void run() {
                         BluetoothSocket temp;
                         BluetoothSocket socket = null;
+                        // Así se crea un objeto de "BluetoothDevice" a partir del string de la mac.
                         BluetoothDevice btDev = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(data.getStringExtra("device_addr"));
+                        // El monstruo que sigue a continuación es para conectarnos por medio de blutú
+                        // al dispositovo de la mac que seleccionamos anteriormente.
                         try {
                             socket = btDev.createRfcommSocketToServiceRecord(UUID.fromString(BluetoothManager.MY_UUID));
+                            // Los logs son banderas de depuración.
                             Log.e("Melchor", "Connecting...");
                             socket.connect();
                             Log.e("Melchor", "Connected, preparing streams...");
                         } catch (IOException e) {
+                            // Si no fue posible conectarse a la buena, lo hacemos a la mala.
                             Log.e("Tulman", "There was an error while establishing Bluetooth connection. Falling back..", e);
                             Class<?> clazz = socket.getRemoteDevice().getClass();
                             Class<?>[] paramTypes = new Class<?>[]{Integer.TYPE};
@@ -297,13 +335,24 @@ public class MainActivity extends AppCompatActivity {
                                 temp.connect();
                                 socket = temp;
                             } catch (Exception e2) {
+                                // Si llegamos aquí es que de plano se seleccionó un dispositivo
+                                // que no está al alcance (dispositivos recordados).
                                 Log.e("TulmanSan", "Couldn't fallback while establishing Bluetooth connection. Stopping app..", e2);
                             }
                             e.printStackTrace();
                         }
+                        // Una vez que terminamos el ritual de conexión, procedemos a intentar
+                        // enviar el archivo.
                         try {
+                            // Lo primero que hay que intentar es armar el objeto IOHandler,
+                            // que permitirá el envío del archivo en bloques.
+                            // Si anteriormente no pudismos crear el socket blutú, aquí hay un
+                            // error y saltamos inmediatamente al "catch", terminando la operación.
                             IOHandler ioHandler = new IOHandler(new DataInputStream(socket.getInputStream()), new DataOutputStream(socket.getOutputStream()));
+                            // Por pruebas preliminares, se determinó que con esta taza de bytes
+                            // no hay problema de escritura de entero.
                             ioHandler.setRate(512);
+                            // Lo que sigue es lo mismo que está en la parte de wifi.
                             FileInputStream fis = new FileInputStream(new File(SOURCE + "/calaca.txt"));
                             DataInputStream entrada = new DataInputStream(fis);
                             byte[] chunk = new byte[512];
@@ -319,9 +368,11 @@ public class MainActivity extends AppCompatActivity {
                             long interval = (System.currentTimeMillis() - init);
                             long minutes = interval / 60000l;
                             long secs = (interval - minutes * 60000l) / 1000;
+                            // Aquí el formato de tiempo está más nice.
                             Log.e("Sender", "Done. Lasted " + minutes + " minutes and " + secs + " seconds.");
                             entrada.close();
                             socket.close();
+                            // Notificamos que terminamos correctamente.
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -330,24 +381,32 @@ public class MainActivity extends AppCompatActivity {
                             });
                         } catch (IOException e) {
                             e.printStackTrace();
+                            runOnUiThread(new Runnable(){ @Override public void run(){ Toast.makeText(MainActivity.this, "¿Por qué no seleccionó un dispositivo correcto?", Toast.LENGTH_SHORT).show(); }});
                         }
                     }
                 }.start();
                 break;
+            // Si procedemos del diálogo de activación de blutú aquí entraremos.
             case BluetoothManager.REQUEST_ENABLE_BT:
+                // La bandera "wasServerSelected" es para saber si el diálogo fue lanzado desde
+                // el modo emisor o receprot.
                 if(wasServerSelected) {
+                    // Si fue desde el receptor, lanzamos la actividad de espera del archivo.
                     wasServerSelected = false;
                     launchWaiterDialogBluetooth();
                 }else{
+                    // Si no, lanzamos la actividad de selección del dispositivo al cuál enviaremos.
                     launchAction(START_CLIENT_ACTION);
                 }
                 break;
             }
         }else{
+            // Just something else.
             Toast.makeText(this, "Problemas de conexión", Toast.LENGTH_SHORT).show();
         }
     }
 
+    // Es recomendable seprar las acciones de inicio de actividades en métodos como los siguientes tres.
     private void launchWaiterDialog() {
         startActivityForResult(new Intent(this, WaiterActivity.class), WAITER_ACTIVITY);
     }
@@ -365,6 +424,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // Banderas útiles en la actividad.
     private static final int START_CLIENT_ACTION = 11;
     private static final String SOURCE = Environment.getExternalStorageDirectory().getAbsolutePath();
     private static final int WAITER_ACTIVITY = 01;
