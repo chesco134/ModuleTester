@@ -8,15 +8,35 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:background="@android:color/background_light"
-    tools:context="org.terminalsupport.jcapiz.terminalsupport.MainActivity">
+    tools:context="org.terminalsupport.jcapiz.moduletester.MainActivity">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <RelativeLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:textSize="40sp"
-        android:text="Uso de IOHandler" />
+        android:layout_marginTop="12sp">
+        <RadioGroup
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_centerHorizontal="true">
+            <ToggleButton
+                android:id="@+id/activity_main_wifi_toggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:checked="true"
+                android:textOn="WiFi"
+                android:textOff="WiFi" />
+            <ToggleButton
+                android:id="@+id/activity_main_bluetooth_toggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:textOn="Bluetooth"
+                android:textOff="Bluetooth"/>
+        </RadioGroup>
+    </RelativeLayout>
 
     <ImageButton
         android:id="@+id/activity_main_on_off"
