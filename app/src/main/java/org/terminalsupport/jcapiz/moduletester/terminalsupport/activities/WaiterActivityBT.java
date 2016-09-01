@@ -9,6 +9,7 @@ import android.os.Environment;
 import android.widget.Toast;
 
 import org.terminalsupport.jcapiz.moduletester.R;
+import org.terminalsupport.jcapiz.moduletester.terminalsupport.bluetooth.BluetoothManager;
 import org.terminalsupport.jcapiz.moduletester.terminalsupport.networking.IOHandler;
 
 import java.io.DataInputStream;
@@ -70,7 +71,6 @@ public class WaiterActivityBT extends Activity {
 
     private class ServerManager extends Thread{
 
-        public static final String MY_UUID = "00001101-0000-1000-8000-00805F9B34FB";
         private static final String MY_NAME = "Balalaika";
         private final BluetoothServerSocket serverSocket;
         private final BluetoothAdapter mBluetoothAdapter;
@@ -82,7 +82,7 @@ public class WaiterActivityBT extends Activity {
             BluetoothServerSocket zukam = null;
             mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
             try{
-                zukam = mBluetoothAdapter.listenUsingRfcommWithServiceRecord(MY_NAME, UUID.fromString(MY_UUID));
+                zukam = mBluetoothAdapter.listenUsingRfcommWithServiceRecord(MY_NAME, UUID.fromString(BluetoothManager.MY_UUID));
             } catch (IOException e){
                 e.printStackTrace();
             }
