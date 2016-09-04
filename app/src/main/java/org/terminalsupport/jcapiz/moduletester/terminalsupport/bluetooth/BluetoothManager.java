@@ -19,7 +19,7 @@ import org.terminalsupport.jcapiz.moduletester.terminalsupport.activities.Device
  */
 public class BluetoothManager {
 
-    public static final String MY_UUID = "00001101-0000-1000-8000-00805F9B34FB";
+    public static final String MY_UUID = "035db532-1f9e-425a-ace8-8b271d33d3d9";
     private BluetoothAdapter mBluetoothAdapter;
     public static final int REQUEST_ENABLE_BT = 102;
     private Activity activity;

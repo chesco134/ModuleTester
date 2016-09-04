@@ -71,7 +71,7 @@ public class WaiterActivityBT extends Activity {
 
     private class ServerManager extends Thread{
 
-        private static final String MY_NAME = "Balalaika";
+        private static final String MY_NAME = "TerminalSupport";
         private final BluetoothServerSocket serverSocket;
         private final BluetoothAdapter mBluetoothAdapter;
         private BluetoothSocket socket;

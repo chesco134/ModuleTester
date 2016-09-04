@@ -1,6 +1,5 @@
 package org.terminalsupport.jcapiz.moduletester;
 
-
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -215,16 +214,17 @@ public class MainActivity extends AppCompatActivity {
                         // Una vez que han sido definidas las acciones "Aceptar"/"Cancelar" del diálogo,
                         // procedemos a mostrarlo.
                         ot.show(MainActivity.this.getSupportFragmentManager(), "ObtenerIP");
+                    }else{
+                        // Si no opera en wifi, opera el blutú.
+                        // Si no está activado el blutú, despliega un diálogo para pedir permiso de activarlo.
+                        if(!manager.isBluetoothEnabled())
+                            manager.enableBluetooth();
+                        else
+                            // Si ya estaba activado procede a lanzar la pantalla de selección del dispositivo al
+                            // que hay que conectarse.
+                            launchAction(START_CLIENT_ACTION);
+                        clicked = false;
                     }
-                }else{
-                    // Si no opera en wifi, opera el blutú.
-                    // Si no está activado el blutú, despliega un diálogo para pedir permiso de activarlo.
-                    if(!manager.isBluetoothEnabled())
-                        manager.enableBluetooth();
-                    else
-                    // Si ya estaba activado procede a lanzar la pantalla de selección del dispositivo al
-                    // que hay que conectarse.
-                        launchAction(START_CLIENT_ACTION);
                 }
             }
         });
@@ -252,7 +252,10 @@ public class MainActivity extends AppCompatActivity {
                 launchWaiterDialog(); // Cuando se toque la opción del menú lanza un dialogo de espera.
             else if(btToggle.isChecked()){
                 wasServerSelected = true;
-                launchWaiterDialogBluetooth(); // Lo mismo que la anterior pero en modo blutú.
+                if(!manager.isBluetoothEnabled())
+                    manager.enableBluetooth();
+                else
+                    launchWaiterDialogBluetooth(); // Lo mismo que la anterior pero en modo blutú.
             }
             // Se indica que el item fue procesado por la actividad.
             consumed = true;
