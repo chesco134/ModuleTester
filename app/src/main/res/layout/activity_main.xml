@@ -48,4 +48,12 @@
         android:adjustViewBounds="true"
         android:scaleType="centerCrop"
         android:src="@drawable/on_off"/>
+    <ProgressBar
+        android:id="@+id/activity_main_progress_bar"
+        android:layout_width="250sp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:visibility="invisible"
+        android:progress="0"/>
 </RelativeLayout>

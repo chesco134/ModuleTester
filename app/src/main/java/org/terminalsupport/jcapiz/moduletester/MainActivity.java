@@ -17,6 +17,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
@@ -43,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ToggleButton btToggle;
     private ToggleButton wifiToggle;
+    private ProgressBar pb;
     private boolean wasServerSelected = false;
     private BluetoothManager manager;
 
@@ -62,6 +64,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        pb = (ProgressBar) findViewById(R.id.activity_main_progress_bar);
+        pb.setIndeterminate(false);
         // Se trata de la imagen del botón de on/off
         ImageButton ib = (ImageButton) findViewById(R.id.activity_main_on_off);
         // Es el botón de operación en modo wifi. Por default ésta es la opción seleccionada.
@@ -135,6 +139,7 @@ public class MainActivity extends AppCompatActivity {
                                             // Puede ser una foto, pero renombrada al nombre y extensión "hardcodeados".
                                             FileInputStream fis = new FileInputStream(new File(SOURCE + "/calaca.txt"));
                                             available = fis.available();
+                                            pb.setMax(available);
                                             // Lo siguiente es un mensaje que aparece en "Android Monitor".
                                             Log.e("Sender", "there are " + available + " bytes to read before blocking");
                                             // Declaración del objeto principal de lectura del archivo.
@@ -161,6 +166,7 @@ public class MainActivity extends AppCompatActivity {
                                             IOHandler ioHandler = new IOHandler(new DataInputStream(socket.getInputStream()), new DataOutputStream(socket.getOutputStream()));
                                             // Se coloca la taza de transferencia.
                                             ioHandler.setRate(1024);
+                                            pb.setVisibility(View.VISIBLE);
                                             // La siguiente variable sólo es un índice para contar las tramas enviadas en el log.
                                             int i = 1;
                                             // Guardamos la estampa de tiempo inicial.
@@ -169,6 +175,7 @@ public class MainActivity extends AppCompatActivity {
                                             while ((length = entrada.read(chunk)) != -1) {
                                                 Log.e("Sender", length + " bytes extracted");
                                                 ioHandler.sendMessage(Arrays.copyOf(chunk, length));
+                                                pb.incrementProgressBy(length);
                                                 Log.e("Sender", length + " bytes sent\t" + i++);
                                             }
                                             // Al terminar, se calculan los minutos que tardó la transferencia.
@@ -203,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
                                             });
                                         } finally {
                                             clicked = false;
+                                            pb.setVisibility(View.INVISIBLE);
                                         }
                                     }
                                 }.start();
